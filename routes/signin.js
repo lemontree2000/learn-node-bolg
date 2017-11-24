@@ -39,7 +39,7 @@ router.post('/', checkNotLogin, function (req, res, next) {
       }
       req.flash('success', '登录成功');
       delete user.password;
-      req.session.use = user;
+      req.session.user = user;
       res.redirect('/posts');
     })
     .catch(next);
