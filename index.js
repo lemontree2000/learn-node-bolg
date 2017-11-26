@@ -7,6 +7,9 @@ const config = require('config-lite')(__dirname);
 
 const routes = require('./routes');
 const pkg = require('./package');
+const winstion = require('winston');
+const expressWinstion = require('express-winston');
+
 
 const app = express();
 
@@ -50,12 +53,49 @@ app.use(function(req, res, next) {
   next();
 })
 
+// 正常请求的日志
+app.use(expressWinstion.logger({
+  transports: [
+    new (winstion.transports.Console)({
+      json: true,
+      colorize: true
+    }),
+    new winstion.transports.File({
+      filename: 'logs/success.log'
+    })
+  ]
+}))
+
 // 路由
 routes(app)
 
-// 监听端口，启动程序
-app.listen(config.port, function () {
-  console.log(`${pkg.name} listening on port ${config.port}`)
+app.use(expressWinstion.errorLogger({
+  transports: [
+    new winstion.transports.Console({
+      json: true,
+      colorize: true
+    }),
+    new winstion.transports.File({
+      filename: 'logs/error.log'
+    })
+  ]
+}))
+
+app.use(function (err, req, res, next) {
+  console.error(err)
+  req.flash('error', err.message)
+  res.redirect('/posts')
 })
+
+// 直接启动 index.js 则会监听端口启动程序，如果 index.js 被 require 了，则导出 app，通常用于测试。
+if (module.parent) {
+  module.exports = app;
+} else {
+  // 监听端口，启动程序
+  app.listen(config.port, function () {
+    console.log(`${pkg.name} listening on port ${config.port}`)
+  })
+}
+
 
 
